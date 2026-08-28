@@ -255,6 +255,11 @@ textarea.backup{width:100%;height:80px;border-radius:10px;border:1px solid var(-
     </div>
 
     <div class="row">
+      <div class="lab">내 소리 녹음해서 나란히 듣기<small>원어민 소리 바로 뒤에 내가 말한 소리를 들려줍니다. 녹음한 소리는 폰 밖으로 나가지 않아요. 발음을 고치는 데 가장 잘 듣는 방법입니다.</small></div>
+      <button class="toggle" id="tRec" aria-pressed="true" aria-label="내 소리 녹음"><i></i></button>
+    </div>
+
+    <div class="row">
       <div class="lab">마이크 발음 채점<small>켜면 말한 목소리가 구글 서버로 보내져 글자로 바뀝니다. 크롬의 음성 인식 방식이라 앱에서 바꿀 수 없어요. 꺼두면 마이크 버튼 자체가 안 나옵니다.</small></div>
       <button class="toggle" id="tMic" aria-pressed="false" aria-label="마이크 발음 채점"><i></i></button>
     </div>
@@ -811,7 +816,8 @@ const BLANK = {
   cards:{}, streakDate:null, streak:0,
   newPerDay:5, newDate:null, newDone:0, bonusDate:null, bonus:0,
   tipSeen:false, showGloss:true, showRo:true,
-  micOn:false, micBlocked:false,        /* 마이크는 기본 꺼짐 — 목소리가 밖으로 나가므로 */
+  recOn:true,                           /* 녹음·번갈아 듣기 — 소리가 폰 밖으로 안 나가므로 기본 켬 */
+  micOn:false, micBlocked:false,        /* 발음 채점 — 목소리가 구글로 가므로 기본 꺼짐 */
   scenesDone:{}
 };
 let S = load();
@@ -872,15 +878,76 @@ function pickVoice(){
          || v.find(x => /^en/i.test(x.lang)) || null;
 }
 if(window.speechSynthesis){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-function speak(text, rate){
-  if(!window.speechSynthesis) return;
+function speak(text, rate, done){
+  if(!window.speechSynthesis){ if(done) done(); return; }
   try{
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "en-US"; u.rate = rate;
     if(enVoice) u.voice = enVoice;
+    if(done){ u.onend = done; u.onerror = done; }
     speechSynthesis.speak(u);
-  }catch(e){}
+  }catch(e){ if(done) done(); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   내 소리 녹음 — 원어민 소리와 번갈아 듣기(쉐도잉)
+   녹음한 소리는 폰 밖으로 나가지 않습니다. 여기서 만들어 여기서 들려줄 뿐입니다.
+   ══════════════════════════════════════════════════════════ */
+let myUrl = null, recorder = null, recErr = null;
+
+function clearMyClip(){
+  if(myUrl){ URL.revokeObjectURL(myUrl); myUrl = null; }
+  recErr = null;
+}
+function stopMic(){                       /* 녹음이 끝나면 마이크를 확실히 놓습니다 */
+  if(recorder && recorder.stream) recorder.stream.getTracks().forEach(t => t.stop());
+  recorder = null;
+}
+
+async function recordMe(btn){
+  if(recorder){ try{ recorder.stop(); }catch(e){} return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder){
+    recErr = "unsupported"; render(); return;
+  }
+  try{ speechSynthesis.cancel(); }catch(e){}
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    const chunks = [];
+    const mr = new MediaRecorder(stream);
+    mr.stream = stream;
+    mr.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+    mr.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      recorder = null;
+      if(chunks.length){
+        clearMyClip();
+        myUrl = URL.createObjectURL(new Blob(chunks, { type: mr.mimeType || "audio/webm" }));
+      }
+      render();
+    };
+    recorder = mr;
+    recErr = null;
+    mr.start();
+    btn.classList.add("listening");
+    btn.innerHTML = mic() + "<span>녹음 중… 누르면 끝</span>";
+    btn.onclick = () => { try{ mr.stop(); }catch(e){} };
+    setTimeout(() => { if(recorder === mr && mr.state === "recording"){ try{ mr.stop(); }catch(e){} } }, 6000);
+  }catch(e){
+    recErr = e && e.name ? e.name : "fail";
+    recorder = null;
+    render();
+  }
+}
+
+function playMine(){
+  if(!myUrl) return;
+  try{ speechSynthesis.cancel(); }catch(e){}
+  new Audio(myUrl).play().catch(() => {});
+}
+function playBoth(text){
+  if(!myUrl){ speak(text, 0.85); return; }
+  speak(text, 0.85, () => setTimeout(playMine, 450));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1063,6 +1130,7 @@ function startSession(freeReview){
    ══════════════════════════════════════════════════════════ */
 function nextCard(){
   saidResult = null; wasRight = null; selfPending = false;
+  stopMic(); clearMyClip();
   if(!queue.length){ finish(); return; }
   cur = queue.shift();
   const st = S.cards[cur.c.id];
@@ -1143,6 +1211,8 @@ function renderStudy(){
     stage.appendChild(unitTable(cur.c));
     stage.appendChild(el("div","note","노란 줄을 제일 세게 말하세요. 영어는 강세가 맞아야 알아듣습니다."));
     stage.appendChild(soundTools(cur.c.en, false));
+    stage.appendChild(shadowTools(cur.c.en));
+    const re0 = recErrBox(); if(re0) stage.appendChild(re0);
     const tb = trapBox(cur.c); if(tb) stage.appendChild(tb);
     $body.appendChild(stage);
     const btn = el("button","primary","맞춰 볼게요");
@@ -1208,6 +1278,9 @@ function renderStudy(){
   stage.appendChild(el("div","ko-prompt", cur.c.ko));
   stage.appendChild(unitTable(cur.c));
   stage.appendChild(soundTools(cur.c.en, true));
+  stage.appendChild(shadowTools(cur.c.en));
+  if(myUrl) stage.appendChild(el("div","note","원어민 소리 바로 뒤에 내 소리가 나옵니다. 어디가 다른지 들어보세요. 이 녹음은 폰 밖으로 나가지 않습니다."));
+  const re = recErrBox(); if(re) stage.appendChild(re);
   const tb2 = trapBox(cur.c); if(tb2) stage.appendChild(tb2);
   if(saidResult) stage.appendChild(saidBox());
   $body.appendChild(stage);
@@ -1287,12 +1360,48 @@ function soundTools(text, withMic){
   norm.onclick = () => speak(text, 1);
   wrap.append(slow, norm);
   if(withMic && micUsable()){
-    const rec = el("button","tool rec");
-    rec.innerHTML = mic() + "<span>따라 말하기</span>";
-    rec.onclick = () => listen(text, rec, false);
-    wrap.appendChild(rec);
+    const r = el("button","tool rec");
+    r.innerHTML = mic() + "<span>발음 채점</span>";
+    r.onclick = () => listen(text, r, false);
+    wrap.appendChild(r);
   }
   return wrap;
+}
+
+/* 녹음 → 번갈아 듣기. 소리는 폰 밖으로 안 나갑니다. */
+function shadowTools(text){
+  const wrap = el("div","tools");
+  if(!S.recOn) return wrap;
+
+  if(myUrl){
+    const both = el("button","tool rec");
+    both.innerHTML = spk() + "<span>번갈아 듣기</span>";
+    both.onclick = () => playBoth(text);
+    const mine = el("button","tool");
+    mine.innerHTML = spk() + "<span>내 소리만</span>";
+    mine.onclick = playMine;
+    const again = el("button","tool");
+    again.innerHTML = mic() + "<span>다시 녹음</span>";
+    again.onclick = () => recordMe(again);
+    wrap.append(both, mine, again);
+  }else{
+    const r = el("button","tool rec");
+    r.innerHTML = mic() + "<span>내 소리 녹음</span>";
+    r.onclick = () => recordMe(r);
+    wrap.appendChild(r);
+  }
+  return wrap;
+}
+
+function recErrBox(){
+  if(!recErr) return null;
+  const b = el("div","said");
+  b.textContent =
+    recErr === "NotAllowedError"   ? "마이크 사용을 허락해 주세요. 물어보는 창이 안 뜨면 이 화면에서는 마이크를 못 엽니다 — 자기 주소(sooo-p.github.io)에서 열면 됩니다."
+  : recErr === "NotFoundError"     ? "마이크를 찾지 못했어요."
+  : recErr === "unsupported"       ? "이 브라우저는 녹음을 지원하지 않아요."
+  : "녹음을 시작하지 못했어요. 다시 눌러보세요.";
+  return b;
 }
 
 let rec = null;
@@ -1665,6 +1774,7 @@ function syncToggles(){
   document.getElementById("tGloss").setAttribute("aria-pressed", String(!!S.showGloss));
   document.getElementById("tRo").setAttribute("aria-pressed", String(!!S.showRo));
   document.getElementById("tMic").setAttribute("aria-pressed", String(!!S.micOn && !S.micBlocked));
+  document.getElementById("tRec").setAttribute("aria-pressed", String(!!S.recOn));
 }
 document.getElementById("gear").onclick = () => {
   document.getElementById("nVal").textContent = S.newPerDay;
@@ -1684,6 +1794,11 @@ document.getElementById("nMinus").onclick = () => {
 };
 document.getElementById("tGloss").onclick = () => { S.showGloss = !S.showGloss; save(); syncToggles(); };
 document.getElementById("tRo").onclick    = () => { S.showRo    = !S.showRo;    save(); syncToggles(); };
+document.getElementById("tRec").onclick   = () => {
+  S.recOn = !S.recOn; save(); syncToggles();
+  msg(S.recOn ? "켰습니다. 녹음한 소리는 폰 안에서만 재생되고 어디로도 보내지 않습니다."
+              : "껐습니다. 녹음 버튼이 화면에서 사라집니다.");
+};
 document.getElementById("tMic").onclick   = () => {
   S.micOn = !S.micOn;
   if(S.micOn) S.micBlocked = false;      /* 다시 켜면 한 번 더 시도해 봅니다 */
