@@ -259,11 +259,6 @@ textarea.backup{width:100%;height:80px;border-radius:10px;border:1px solid var(-
       <button class="toggle" id="tRec" aria-pressed="true" aria-label="내 소리 녹음"><i></i></button>
     </div>
 
-    <div class="row">
-      <div class="lab">마이크 발음 채점<small>켜면 말한 목소리가 구글 서버로 보내져 글자로 바뀝니다. 크롬의 음성 인식 방식이라 앱에서 바꿀 수 없어요. 꺼두면 마이크 버튼 자체가 안 나옵니다.</small></div>
-      <button class="toggle" id="tMic" aria-pressed="false" aria-label="마이크 발음 채점"><i></i></button>
-    </div>
-
     <div class="howto">
       <b>폰 홈 화면에 앱처럼 두기</b>
       <ol><li>크롬에서 이 페이지를 연 상태로</li><li>오른쪽 위 <b>⋮</b> 누르기</li><li><b>홈 화면에 추가</b> 누르기</li></ol>
@@ -817,7 +812,6 @@ const BLANK = {
   newPerDay:5, newDate:null, newDone:0, bonusDate:null, bonus:0,
   tipSeen:false, showGloss:true, showRo:true,
   recOn:true,                           /* 녹음·번갈아 듣기 — 소리가 폰 밖으로 안 나가므로 기본 켬 */
-  micOn:false, micBlocked:false,        /* 발음 채점 — 목소리가 구글로 가므로 기본 꺼짐 */
   scenesDone:{}
 };
 let S = load();
@@ -951,27 +945,6 @@ function playBoth(text){
 }
 
 /* ══════════════════════════════════════════════════════════
-   마이크
-   ══════════════════════════════════════════════════════════ */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-function micUsable(){ return !!SR && S.micOn && !S.micBlocked; }
-const PASS = 70;   /* 이 점수 이상이면 통과 */
-
-function normWords(s){
-  return s.toLowerCase().replace(/[.,!?;:"“”‘]/g,"").replace(/’/g,"'").trim().split(/\s+/).filter(Boolean);
-}
-function similarity(a, b){
-  const A = normWords(a), B = normWords(b);
-  if(!A.length || !B.length) return 0;
-  const d = Array.from({length:A.length+1}, (_,i) => [i, ...Array(B.length).fill(0)]);
-  for(let j=0;j<=B.length;j++) d[0][j] = j;
-  for(let i=1;i<=A.length;i++)
-    for(let j=1;j<=B.length;j++)
-      d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + (A[i-1]===B[j-1] ? 0 : 1));
-  return Math.max(0, Math.round((1 - d[A.length][B.length]/Math.max(A.length,B.length)) * 100));
-}
-
-/* ══════════════════════════════════════════════════════════
    화면 상태
    ══════════════════════════════════════════════════════════ */
 const $body = document.getElementById("body");
@@ -982,8 +955,8 @@ const $mark = document.getElementById("mark");
 let view = "home";            /* home | study | done | scenes | scene | drills | drill */
 let queue = [], total = 0, cur = null;
 let step = "intro";           /* intro | build | say | reveal */
-let placed = [], pool = [], wasRight = null, saidResult = null, selfPending = false;
-let sceneIdx = 0, turnIdx = 0, turnShown = false, sceneSaid = null;
+let placed = [], pool = [], wasRight = null, selfPending = false;
+let sceneIdx = 0, turnIdx = 0, turnShown = false;
 let drillIdx = 0, drillQueue = [], drillPos = 0, drillOpts = [], drillPicked = null, drillOk = 0;
 
 function el(tag, cls, text){
@@ -1129,7 +1102,7 @@ function startSession(freeReview){
    학습 카드
    ══════════════════════════════════════════════════════════ */
 function nextCard(){
-  saidResult = null; wasRight = null; selfPending = false;
+  wasRight = null; selfPending = false;
   stopMic(); clearMyClip();
   if(!queue.length){ finish(); return; }
   cur = queue.shift();
@@ -1210,7 +1183,7 @@ function renderStudy(){
     stage.appendChild(el("div","ko-prompt", cur.c.ko));
     stage.appendChild(unitTable(cur.c));
     stage.appendChild(el("div","note","노란 줄을 제일 세게 말하세요. 영어는 강세가 맞아야 알아듣습니다."));
-    stage.appendChild(soundTools(cur.c.en, false));
+    stage.appendChild(soundTools(cur.c.en));
     stage.appendChild(shadowTools(cur.c.en));
     const re0 = recErrBox(); if(re0) stage.appendChild(re0);
     const tb = trapBox(cur.c); if(tb) stage.appendChild(tb);
@@ -1225,18 +1198,7 @@ function renderStudy(){
   if(step === "say"){
     stage.appendChild(el("div","eyebrow","2단 · 보지 않고 말하기"));
     stage.appendChild(el("div","ko-prompt", cur.c.ko));
-    stage.appendChild(el("div","note", micUsable()
-      ? "조각이 없습니다. 영어로 소리 내어 말한 다음 마이크를 누르세요."
-      : "조각이 없습니다. 영어로 소리 내어 말해보고, 맞았는지 확인하세요."));
-    if(micUsable()){
-      const tools = el("div","tools");
-      const rec = el("button","tool rec");
-      rec.innerHTML = mic() + "<span>말했어요, 채점</span>";
-      rec.onclick = () => listen(cur.c.en, rec, true);
-      tools.appendChild(rec);
-      stage.appendChild(tools);
-    }
-    if(saidResult) stage.appendChild(saidBox());
+    stage.appendChild(el("div","note","조각이 없습니다. 영어로 소리 내어 말해보고, 맞았는지 확인하세요."));
     $body.appendChild(stage);
 
     const show = el("button","primary","답 보기");
@@ -1277,12 +1239,11 @@ function renderStudy(){
   if(!wasRight && cur.myAnswer) stage.appendChild(el("div","wrongline", cur.myAnswer));
   stage.appendChild(el("div","ko-prompt", cur.c.ko));
   stage.appendChild(unitTable(cur.c));
-  stage.appendChild(soundTools(cur.c.en, true));
+  stage.appendChild(soundTools(cur.c.en));
   stage.appendChild(shadowTools(cur.c.en));
   if(myUrl) stage.appendChild(el("div","note","원어민 소리 바로 뒤에 내 소리가 나옵니다. 어디가 다른지 들어보세요. 이 녹음은 폰 밖으로 나가지 않습니다."));
   const re = recErrBox(); if(re) stage.appendChild(re);
   const tb2 = trapBox(cur.c); if(tb2) stage.appendChild(tb2);
-  if(saidResult) stage.appendChild(saidBox());
   $body.appendChild(stage);
 
   if(selfPending){
@@ -1350,7 +1311,7 @@ function handoffText(){
   ].join("\n");
 }
 
-function soundTools(text, withMic){
+function soundTools(text){
   const wrap = el("div","tools");
   const slow = el("button","tool");
   slow.innerHTML = spk() + "<span>느리게</span>";
@@ -1359,12 +1320,6 @@ function soundTools(text, withMic){
   norm.innerHTML = spk() + "<span>보통 속도</span>";
   norm.onclick = () => speak(text, 1);
   wrap.append(slow, norm);
-  if(withMic && micUsable()){
-    const r = el("button","tool rec");
-    r.innerHTML = mic() + "<span>발음 채점</span>";
-    r.onclick = () => listen(text, r, false);
-    wrap.appendChild(r);
-  }
   return wrap;
 }
 
@@ -1401,71 +1356,6 @@ function recErrBox(){
   : recErr === "NotFoundError"     ? "마이크를 찾지 못했어요."
   : recErr === "unsupported"       ? "이 브라우저는 녹음을 지원하지 않아요."
   : "녹음을 시작하지 못했어요. 다시 눌러보세요.";
-  return b;
-}
-
-let rec = null;
-function listen(target, btn, autoGrade){
-  if(!SR) return;
-  try{ speechSynthesis.cancel(); }catch(e){}
-  if(rec){ try{ rec.abort(); }catch(e){} rec = null; }
-  rec = new SR();
-  rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 3;
-  btn.classList.add("listening");
-  btn.innerHTML = mic() + "<span>듣는 중…</span>";
-  rec.onresult = (e) => {
-    let best = 0, bestText = "";
-    for(let i=0;i<e.results[0].length;i++){
-      const t = e.results[0][i].transcript, s = similarity(t, target);
-      if(s > best){ best = s; bestText = t; }
-    }
-    const r = { score: best, heard: bestText };
-    if(view === "scene"){ sceneSaid = r; render(); return; }
-    saidResult = r;
-    if(autoGrade){                       /* 2단 말하기: 점수로 바로 채점 */
-      wasRight = best >= PASS;
-      selfPending = false;
-      step = "reveal";
-      commit(wasRight);
-    }
-    render();
-    if(autoGrade) speak(target, wasRight ? 1 : 0.8);
-  };
-  rec.onerror = (e) => {
-    if(e.error === "not-allowed" || e.error === "service-not-allowed"){ S.micBlocked = true; save(); }
-    const r = { score:-1, heard:"", err:e.error };
-    if(view === "scene"){ sceneSaid = r; render(); return; }
-    saidResult = r; render();
-  };
-  rec.onend = () => { rec = null; };
-  try{ rec.start(); }catch(e){
-    const r = { score:-1, heard:"", err:"start" };
-    if(view === "scene") sceneSaid = r; else saidResult = r;
-    render();
-  }
-}
-
-function saidBox(res){
-  const R = res || saidResult;
-  const s = R.score;
-  if(s < 0){
-    const b = el("div","said");
-    b.textContent = (R.err === "not-allowed" || R.err === "service-not-allowed")
-      ? "이 화면에서는 마이크를 열 수 없어서 발음 채점은 끕니다. 나머지는 그대로 쓰시면 됩니다."
-      : R.err === "no-speech" ? "소리가 안 잡혔어요. 조금 더 크게 말해보세요."
-      : "지금은 못 알아들었어요. 조용한 곳에서 다시 눌러보세요.";
-    return b;
-  }
-  const cls = s >= 80 ? "good" : s >= 55 ? "soso" : "bad";
-  const msg = s >= 80 ? "좋아요. 이 정도면 통합니다."
-            : s >= 55 ? "거의 다 왔어요. 노란 줄을 더 세게 말해보세요."
-            : "폰이 못 알아들었어요. 느리게 듣고 한 덩어리씩 끊어서 다시.";
-  const b = el("div","said " + cls);
-  const line = el("div");
-  line.appendChild(el("span","score", s + "%"));
-  line.appendChild(document.createTextNode("  " + msg));
-  b.appendChild(line);
-  if(R.heard) b.appendChild(el("div","heard","들린 말: " + R.heard));
   return b;
 }
 
@@ -1533,7 +1423,7 @@ function renderScenes(){
     n.appendChild(el("small", null, sc.where + " · 내 대사 " + sc.turns.filter(t => t.w === "me").length + "개"));
     b.appendChild(n);
     b.appendChild(el("div","sd", S.scenesDone[sc.name] ? "완료" : ""));
-    b.onclick = () => { sceneIdx = i; turnIdx = 0; turnShown = false; sceneSaid = null; view = "scene"; render(); };
+    b.onclick = () => { sceneIdx = i; turnIdx = 0; turnShown = false; view = "scene"; render(); };
     list.appendChild(b);
   });
   $body.appendChild(list);
@@ -1568,7 +1458,7 @@ function renderScene(){
     $body.appendChild(done);
     S.scenesDone[sc.name] = true; save();
     const again = el("button","primary","한 번 더");
-    again.onclick = () => { turnIdx = 0; turnShown = false; sceneSaid = null; render(); };
+    again.onclick = () => { turnIdx = 0; turnShown = false; render(); };
     const back = el("button","ghost","다른 장면 고르기");
     back.onclick = () => { view = "scenes"; render(); };
     $foot.append(again, back);
@@ -1585,7 +1475,7 @@ function renderScene(){
     $body.appendChild(chat);
     setTimeout(() => speak(t.en, 0.85), 250);
     const btn = el("button","primary","내 차례");
-    btn.onclick = () => { turnIdx++; turnShown = false; sceneSaid = null; render(); };
+    btn.onclick = () => { turnIdx++; turnShown = false; render(); };
     $foot.appendChild(btn);
     return;
   }
@@ -1605,21 +1495,9 @@ function renderScene(){
   if(!turnShown){
     const note = el("div","note");
     note.style.marginTop = "12px";
-    note.textContent = micUsable()
-      ? "영어로 소리 내어 말한 다음 마이크를 누르세요. 3초 안에 나오는 게 목표입니다."
-      : "영어로 소리 내어 말해보고 답을 확인하세요. 3초 안에 나오는 게 목표입니다.";
+    note.textContent = "영어로 소리 내어 말해보고 답을 확인하세요. 3초 안에 나오는 게 목표입니다.";
     $body.appendChild(note);
-    if(micUsable()){
-      const tools = el("div","tools");
-      tools.style.marginTop = "10px";
-      const r = el("button","tool rec");
-      r.innerHTML = mic() + "<span>말했어요, 채점</span>";
-      r.onclick = () => listen(t.en, r, false);
-      tools.appendChild(r);
-      $body.appendChild(tools);
-    }
   }
-  if(sceneSaid) $body.appendChild(saidBox(sceneSaid));
 
   if(!turnShown){
     const show = el("button","primary","답 보기");
@@ -1627,7 +1505,7 @@ function renderScene(){
     $foot.appendChild(show);
   }else{
     const next = el("button","primary","다음");
-    next.onclick = () => { turnIdx++; turnShown = false; sceneSaid = null; render(); };
+    next.onclick = () => { turnIdx++; turnShown = false; render(); };
     $foot.appendChild(next);
   }
   const quit = el("button","ghost","그만하기");
@@ -1750,7 +1628,7 @@ function renderDrill(){
       const mine = el("div","wrongline", drillSentence(d, drillPicked));
       stage.appendChild(mine);
     }
-    stage.appendChild(soundTools(drillSentence(d, item), false));
+    stage.appendChild(soundTools(drillSentence(d, item)));
   }
   $body.appendChild(stage);
 
@@ -1773,7 +1651,6 @@ function msg(t){ $msg.textContent = t; }
 function syncToggles(){
   document.getElementById("tGloss").setAttribute("aria-pressed", String(!!S.showGloss));
   document.getElementById("tRo").setAttribute("aria-pressed", String(!!S.showRo));
-  document.getElementById("tMic").setAttribute("aria-pressed", String(!!S.micOn && !S.micBlocked));
   document.getElementById("tRec").setAttribute("aria-pressed", String(!!S.recOn));
 }
 document.getElementById("gear").onclick = () => {
@@ -1799,15 +1676,6 @@ document.getElementById("tRec").onclick   = () => {
   msg(S.recOn ? "켰습니다. 녹음한 소리는 폰 안에서만 재생되고 어디로도 보내지 않습니다."
               : "껐습니다. 녹음 버튼이 화면에서 사라집니다.");
 };
-document.getElementById("tMic").onclick   = () => {
-  S.micOn = !S.micOn;
-  if(S.micOn) S.micBlocked = false;      /* 다시 켜면 한 번 더 시도해 봅니다 */
-  save(); syncToggles();
-  msg(S.micOn
-    ? "켰습니다. 말한 목소리가 구글 서버로 갑니다. 버튼을 누를 때만이고, 안 누르면 나가지 않습니다."
-    : "껐습니다. 마이크 버튼이 화면에서 사라지고, 목소리는 어디로도 나가지 않습니다.");
-};
-
 document.getElementById("copyBk").onclick = async () => {
   const ta = document.getElementById("backup");
   try{ await navigator.clipboard.writeText(ta.value); msg("복사했어요. 안전한 곳에 붙여넣어 두세요."); }
