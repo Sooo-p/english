@@ -1002,22 +1002,35 @@ function renderHandoff(){
     ta.style.marginTop = "12px";
     $body.appendChild(ta);
 
-    const note = el("div","note", "붙여넣은 다음 '시작'이라고 하면 바로 역할극이 시작됩니다.");
+    const note = el("div","note", "Claude 가 열리면 붙여넣고 보내세요. 발음은 여기 앱의 녹음으로 잡고, 선생님한테는 '무슨 말을 할지'를 배웁니다.");
     note.style.marginTop = "8px";
     $body.appendChild(note);
 
-    const copy = el("button","primary","복사하기");
+    /* 복사와 열기를 한 번에. a 태그라 팝업 차단에 안 걸립니다. */
+    const go = document.createElement("a");
+    go.className = "primary";
+    go.href = "https://claude.ai/new";
+    go.target = "_blank";
+    go.rel = "noopener";
+    go.textContent = "복사하고 Claude 열기";
+    go.style.display = "flex";
+    go.style.alignItems = "center";
+    go.style.justifyContent = "center";
+    go.style.textDecoration = "none";
+    go.onclick = () => { try{ navigator.clipboard.writeText(ta.value); }catch(e){} };
+
+    const copy = el("button","ghost","복사만 하기");
     copy.onclick = async () => {
       try{
         await navigator.clipboard.writeText(ta.value);
-        copy.textContent = "복사했어요 — 선생님에게 붙여넣으세요";
+        copy.textContent = "복사했어요";
       }catch(e){
         ta.removeAttribute("readonly"); ta.select();
         copy.textContent = "길게 눌러 전체 선택 후 복사하세요";
       }
-      setTimeout(() => { copy.textContent = "복사하기"; }, 3000);
+      setTimeout(() => { copy.textContent = "복사만 하기"; }, 3000);
     };
-    $foot.appendChild(copy);
+    $foot.append(go, copy);
   }
   const back = el("button","ghost","홈으로");
   back.onclick = () => { view = "home"; render(); };
