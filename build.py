@@ -25,7 +25,7 @@ cut = head_file.index('</style>') + len('</style>')
 head_part = head_file[:cut]          # title + 글꼴 link + style
 body_part = head_file[cut:]          # div 들
 
-code = read('sentences.js') + read('_data2.js') + read('_data3.js') + read('_app.js')
+code = read('sentences.js') + read('_data2.js') + read('_data3.js') + read('_data4.js') + read('_app.js')
 
 # ── 아티팩트용: 예전과 똑같이 몸통만 ──────────────────────────────
 write('artifact.html', head_part + body_part + code)

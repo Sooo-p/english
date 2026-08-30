@@ -391,6 +391,69 @@ function unitTable(c){
   return t;
 }
 
+/* 낱개 뜻으로는 안 풀리는 문장이라는 알림 */
+function idiomBox(c){
+  if(!IDIOMS.has(c.en)) return null;
+  const d = el("div","idiom");
+  const t = el("div");
+  t.innerHTML = "<b>이건 통으로 외우는 말입니다.</b> 낱개 뜻을 더해도 이 뜻이 안 나와요. 아래 설명을 보고, 문장째로 기억하세요.";
+  d.append(t);
+  return d;
+}
+
+/* 왜 이 뜻인지 · 언제 쓰는지 · 같은 조각의 다른 쓰임 */
+function noteBox(c){
+  const n = NOTES[c.en];
+  if(!n) return null;
+  const box = el("div","nbox");
+
+  if(n.why){
+    const s = el("div","nsec");
+    s.appendChild(el("div","nh","왜 이 뜻일까"));
+    s.appendChild(el("div","nt", n.why));
+    box.appendChild(s);
+  }
+  if(n.ex && n.ex.length){
+    const s = el("div","nsec");
+    s.appendChild(el("div","nh","이럴 때 씁니다"));
+    const dlg = el("div","dlg");
+    n.ex.forEach((line, i) => {
+      const mine = (i === n.ex.length - 1);
+      const row = el("div","dline" + (mine ? " mine" : ""));
+      row.appendChild(el("div","dw", mine ? "나" : "상"));
+      const b = el("div","dbody");
+      b.appendChild(el("div","de", line[0]));
+      b.appendChild(el("div","dk", line[1]));
+      row.appendChild(b);
+      row.onclick = () => speak(line[0], 0.85);
+      dlg.appendChild(row);
+    });
+    s.appendChild(dlg);
+    box.appendChild(s);
+  }
+  if(n.tip){
+    const s = el("div","nsec");
+    s.appendChild(el("div","nh","알아두면 좋은 것"));
+    s.appendChild(el("div","nt", n.tip));
+    box.appendChild(s);
+  }
+  if(n.more && n.more.length){
+    const s = el("div","nsec");
+    s.appendChild(el("div","nh","같은 조각이 들어간 말"));
+    const list = el("div","mlist");
+    n.more.forEach(m => {
+      const row = el("div","mline");
+      row.appendChild(el("div","mE", m[0]));
+      row.appendChild(el("div","mK", m[1]));
+      row.onclick = () => speak(m[0], 0.85);
+      list.appendChild(row);
+    });
+    s.appendChild(list);
+    box.appendChild(s);
+  }
+  return box;
+}
+
 function trapBox(c){
   const list = trapsOf(c);
   if(!list.length) return null;
@@ -418,8 +481,10 @@ function renderStudy(){
     stage.appendChild(el("div","en-answer", cur.c.en));
     if(S.showRo) stage.appendChild(el("div","ro", cur.c.ro));
     stage.appendChild(el("div","ko-prompt", cur.c.ko));
+    const ib = idiomBox(cur.c); if(ib) stage.appendChild(ib);
     stage.appendChild(unitTable(cur.c));
     stage.appendChild(el("div","note","노란 줄을 제일 세게 말하세요. 영어는 강세가 맞아야 알아듣습니다."));
+    const nb = noteBox(cur.c); if(nb) stage.appendChild(nb);
     stage.appendChild(soundTools(cur.c.en));
     stage.appendChild(shadowTools(cur.c.en));
     const re0 = recErrBox(); if(re0) stage.appendChild(re0);
@@ -475,7 +540,9 @@ function renderStudy(){
   if(S.showRo) stage.appendChild(el("div","ro", cur.c.ro));
   if(!wasRight && cur.myAnswer) stage.appendChild(el("div","wrongline", cur.myAnswer));
   stage.appendChild(el("div","ko-prompt", cur.c.ko));
+  const ib2 = idiomBox(cur.c); if(ib2) stage.appendChild(ib2);
   stage.appendChild(unitTable(cur.c));
+  const nb2 = noteBox(cur.c); if(nb2) stage.appendChild(nb2);
   stage.appendChild(soundTools(cur.c.en));
   stage.appendChild(shadowTools(cur.c.en));
   if(myUrl) stage.appendChild(el("div","note","원어민 소리 바로 뒤에 내 소리가 나옵니다. 어디가 다른지 들어보세요. 이 녹음은 폰 밖으로 나가지 않습니다."));
