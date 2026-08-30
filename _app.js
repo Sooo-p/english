@@ -391,6 +391,19 @@ function unitTable(c){
   return t;
 }
 
+/* 그림 한 컷 + 어떤 상황인지 — 한국어를 거치지 않고 뜻이 붙게 */
+function picBox(c){
+  const p = PICS[c.en];
+  if(!p) return null;
+  const b = el("div","picband");
+  b.appendChild(el("div","pe", p));
+  const l = el("div","pl");
+  l.appendChild(el("b", null, c.gt.split("  ·  ")[0]));
+  l.appendChild(el("span", null, "이런 상황에서 씁니다"));
+  b.appendChild(l);
+  return b;
+}
+
 /* 낱개 뜻으로는 안 풀리는 문장이라는 알림 */
 function idiomBox(c){
   if(!IDIOMS.has(c.en)) return null;
@@ -478,6 +491,7 @@ function renderStudy(){
   /* ── 1단 도입: 처음 만나는 문장 ── */
   if(step === "intro"){
     stage.appendChild(el("div","eyebrow","새 문장"));
+    const pb = picBox(cur.c); if(pb) stage.appendChild(pb);
     stage.appendChild(el("div","en-answer", cur.c.en));
     if(S.showRo) stage.appendChild(el("div","ro", cur.c.ro));
     stage.appendChild(el("div","ko-prompt", cur.c.ko));
@@ -514,6 +528,7 @@ function renderStudy(){
   /* ── 1단: 조각 맞추기 ── */
   if(step === "build"){
     stage.appendChild(el("div","eyebrow","한국어를 영어로"));
+    const pb2 = picBox(cur.c); if(pb2) stage.appendChild(pb2);
     stage.appendChild(el("div","ko-prompt", cur.c.ko));
     const slots = el("div","slots");
     placed.forEach((p, idx) => slots.appendChild(chipEl(p,"placed",() => {
