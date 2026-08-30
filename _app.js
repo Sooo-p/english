@@ -392,16 +392,32 @@ function unitTable(c){
 }
 
 /* 그림 한 컷 + 어떤 상황인지 — 한국어를 거치지 않고 뜻이 붙게 */
+/* 어떤 상황에서 쓰는 말인지 한 줄. 그림은 뜻을 제대로 못 전해서 뺐습니다. */
 function picBox(c){
+  const b = el("div","situ");
   const p = PICS[c.en];
-  if(!p) return null;
-  const b = el("div","picband");
-  b.appendChild(el("div","pe", p));
-  const l = el("div","pl");
-  l.appendChild(el("b", null, c.gt.split("  ·  ")[0]));
-  l.appendChild(el("span", null, "이런 상황에서 씁니다"));
-  b.appendChild(l);
+  if(p) b.appendChild(el("span","si", p));
+  b.appendChild(el("span", null, c.gt.split("  ·  ")[0]));
   return b;
+}
+
+/* 단어 기억법 — 어려운 단어를 쪼개서 이야기로 */
+function wordBox(c){
+  const list = wordNotes(c);
+  if(!list.length) return null;
+  const box = el("div","nbox");
+  list.forEach((w, i) => {
+    const s = el("div","nsec");
+    if(i === 0) s.appendChild(el("div","nh","이 단어 외우는 법"));
+    const head = el("div","wtop");
+    head.appendChild(el("b", null, w.w));
+    head.appendChild(el("span", null, w.ro + " · " + w.k));
+    s.appendChild(head);
+    if(w.cut) s.appendChild(el("div","wcut", w.cut));
+    s.appendChild(el("div","nt", w.why));
+    box.appendChild(s);
+  });
+  return box;
 }
 
 /* 낱개 뜻으로는 안 풀리는 문장이라는 알림 */
@@ -498,6 +514,7 @@ function renderStudy(){
     const ib = idiomBox(cur.c); if(ib) stage.appendChild(ib);
     stage.appendChild(unitTable(cur.c));
     stage.appendChild(el("div","note","노란 줄을 제일 세게 말하세요. 영어는 강세가 맞아야 알아듣습니다."));
+    const wb = wordBox(cur.c); if(wb) stage.appendChild(wb);
     const nb = noteBox(cur.c); if(nb) stage.appendChild(nb);
     stage.appendChild(soundTools(cur.c.en));
     stage.appendChild(shadowTools(cur.c.en));
@@ -557,6 +574,7 @@ function renderStudy(){
   stage.appendChild(el("div","ko-prompt", cur.c.ko));
   const ib2 = idiomBox(cur.c); if(ib2) stage.appendChild(ib2);
   stage.appendChild(unitTable(cur.c));
+  const wb2 = wordBox(cur.c); if(wb2) stage.appendChild(wb2);
   const nb2 = noteBox(cur.c); if(nb2) stage.appendChild(nb2);
   stage.appendChild(soundTools(cur.c.en));
   stage.appendChild(shadowTools(cur.c.en));
