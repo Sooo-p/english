@@ -15,7 +15,7 @@ const DRILLS = [
     {ko:"같은 걸로 주세요",  fill:"the same thing", fk:"같은 것"},
     {ko:"이걸로 주세요",     fill:"this one",      fk:"이것"},
     {ko:"자리 하나 주세요",  fill:"a table",       fk:"테이블 하나"},
-    {ko:"메뉴판 주세요",     fill:"the menu",      fk:"메뉴판"}
+    {ko:"영수증 주세요",     fill:"a receipt",     fk:"영수증 하나"}
   ]},
 
 { name:"허락 구하기", frame:"Can I ___?", fko:"~해도 될까요?",

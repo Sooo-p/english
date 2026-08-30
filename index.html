@@ -415,7 +415,7 @@ const GROUPS = [
  ["Do you take cards?","카드 받으세요?","두 유 테이크 카즈",["Do you|~하시나요","take|받다","cards|카드를"]],
  ["Can I get a discount?","깎아주실 수 있어요?","캔 아이 겟 어 디스카운트",["Can I|~해도 될까요","get|받다","a|한","discount|할인"]],
  ["How much is it in total?","전부 얼마예요?","하우 머치 이즈 잇 인 토탈",["How much|얼마","is|인가요","it|그게","in|~로","total|전부"]],
- ["I think this is wrong.","이거 잘못된 것 같아요.","아이 띵크 디스 이즈 롱",["I think|~인 것 같아요","this|이건","is|~이다","wrong|잘못된"]]]},
+ ["I think there's a mistake.","계산이 잘못된 것 같아요.","아이 띵크 데어즈 어 미스테이크",["I think|~인 것 같아요","there's|~가 있다","a|하나","mistake|잘못된 것"]]]},
 
 {t:"있어요?  ·  Do you have", s:[
  ["Do you have a charger?","충전기 있어요?","두 유 해브 어 차저",["Do you have|~있나요","a|한","charger|충전기"]],
@@ -475,7 +475,7 @@ const GROUPS = [
  ["Sorry to bother you.","방해해서 죄송해요.","쏘리 투 바더 유",["Sorry|미안해요","to bother|귀찮게 해서","you|당신을"]],
  ["Don't worry about it.","신경 쓰지 마세요.","돈 워리 어바웃 잇",["Don't|~하지 마","worry|걱정하다","about|~에 대해","it|그걸"]],
  ["Thanks for letting me know.","알려줘서 고마워.","쌩스 포 레팅 미 노우",["Thanks|고마워","for|~에 대해","letting|~하게 해준 것","me|나를","know|알다"]],
- ["Excuse me, sorry.","실례합니다, 죄송해요.","익스큐즈 미 쏘리",["Excuse|봐주세요","me|저를","sorry|죄송해요"]]]},
+ ["Thanks anyway.","그래도 고마워요.","쌩스 애니웨이",["Thanks|고마워요","anyway|그래도"]]]},
 
 {t:"생각 말하기  ·  I think", s:[
  ["I think so too.","나도 그렇게 생각해.","아이 띵크 쏘 투",["I think|~라고 생각해","so|그렇게","too|나도"]],
@@ -708,7 +708,7 @@ const DRILLS = [
     {ko:"같은 걸로 주세요",  fill:"the same thing", fk:"같은 것"},
     {ko:"이걸로 주세요",     fill:"this one",      fk:"이것"},
     {ko:"자리 하나 주세요",  fill:"a table",       fk:"테이블 하나"},
-    {ko:"메뉴판 주세요",     fill:"the menu",      fk:"메뉴판"}
+    {ko:"영수증 주세요",     fill:"a receipt",     fk:"영수증 하나"}
   ]},
 
 { name:"허락 구하기", frame:"Can I ___?", fko:"~해도 될까요?",
@@ -1022,6 +1022,16 @@ const NOTES = {
  ex:[["For here or to go?","여기서 드세요, 가져가세요?"],["For here, please.","여기서 먹을게요."]],
  tip:"카페에서 거의 반드시 듣는 질문입니다. 대답은 For here. 아니면 To go. 둘 중 하나예요.",
  more:[["To go, please.","포장해 주세요"]]},
+
+"Thanks anyway.":{
+ why:"anyway 는 '그래도, 어쨌든'입니다. 도움을 못 받았어도 '그래도 고맙다'고 인사하는 말이에요.",
+ ex:[["Sorry, I don't know.","죄송해요, 저도 모르겠어요."],["Thanks anyway.","그래도 고마워요."]],
+ tip:"길을 물었는데 상대가 모를 때. 이 말을 알면 어색하게 끝나지 않습니다. 여행에서 아주 자주 씁니다."},
+
+"I think there's a mistake.":{
+ why:"mistake 는 '잘못된 것, 착오'입니다. there's 는 there is(~가 있다)의 줄임. '착오가 있는 것 같아요'가 됩니다.",
+ ex:[["That'll be fifty dollars.","50달러입니다."],["I think there's a mistake.","계산이 잘못된 것 같아요."]],
+ tip:"계산서가 이상할 때 쓰는 말입니다. You're wrong.(당신이 틀렸다)이라고 하면 시비가 되니 이렇게 말하세요. 상대를 탓하지 않으면서 확인을 요청하는 표현입니다."},
 
 "Keep the change.":{
  why:"change 는 '변화'가 아니라 여기서는 '거스름돈'입니다. '거스름돈은 가지세요' → '잔돈은 됐어요'.",

@@ -94,7 +94,7 @@ const GROUPS = [
  ["Do you take cards?","카드 받으세요?","두 유 테이크 카즈",["Do you|~하시나요","take|받다","cards|카드를"]],
  ["Can I get a discount?","깎아주실 수 있어요?","캔 아이 겟 어 디스카운트",["Can I|~해도 될까요","get|받다","a|한","discount|할인"]],
  ["How much is it in total?","전부 얼마예요?","하우 머치 이즈 잇 인 토탈",["How much|얼마","is|인가요","it|그게","in|~로","total|전부"]],
- ["I think this is wrong.","이거 잘못된 것 같아요.","아이 띵크 디스 이즈 롱",["I think|~인 것 같아요","this|이건","is|~이다","wrong|잘못된"]]]},
+ ["I think there's a mistake.","계산이 잘못된 것 같아요.","아이 띵크 데어즈 어 미스테이크",["I think|~인 것 같아요","there's|~가 있다","a|하나","mistake|잘못된 것"]]]},
 
 {t:"있어요?  ·  Do you have", s:[
  ["Do you have a charger?","충전기 있어요?","두 유 해브 어 차저",["Do you have|~있나요","a|한","charger|충전기"]],
@@ -154,7 +154,7 @@ const GROUPS = [
  ["Sorry to bother you.","방해해서 죄송해요.","쏘리 투 바더 유",["Sorry|미안해요","to bother|귀찮게 해서","you|당신을"]],
  ["Don't worry about it.","신경 쓰지 마세요.","돈 워리 어바웃 잇",["Don't|~하지 마","worry|걱정하다","about|~에 대해","it|그걸"]],
  ["Thanks for letting me know.","알려줘서 고마워.","쌩스 포 레팅 미 노우",["Thanks|고마워","for|~에 대해","letting|~하게 해준 것","me|나를","know|알다"]],
- ["Excuse me, sorry.","실례합니다, 죄송해요.","익스큐즈 미 쏘리",["Excuse|봐주세요","me|저를","sorry|죄송해요"]]]},
+ ["Thanks anyway.","그래도 고마워요.","쌩스 애니웨이",["Thanks|고마워요","anyway|그래도"]]]},
 
 {t:"생각 말하기  ·  I think", s:[
  ["I think so too.","나도 그렇게 생각해.","아이 띵크 쏘 투",["I think|~라고 생각해","so|그렇게","too|나도"]],

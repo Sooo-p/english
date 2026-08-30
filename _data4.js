@@ -210,6 +210,16 @@ const NOTES = {
  tip:"카페에서 거의 반드시 듣는 질문입니다. 대답은 For here. 아니면 To go. 둘 중 하나예요.",
  more:[["To go, please.","포장해 주세요"]]},
 
+"Thanks anyway.":{
+ why:"anyway 는 '그래도, 어쨌든'입니다. 도움을 못 받았어도 '그래도 고맙다'고 인사하는 말이에요.",
+ ex:[["Sorry, I don't know.","죄송해요, 저도 모르겠어요."],["Thanks anyway.","그래도 고마워요."]],
+ tip:"길을 물었는데 상대가 모를 때. 이 말을 알면 어색하게 끝나지 않습니다. 여행에서 아주 자주 씁니다."},
+
+"I think there's a mistake.":{
+ why:"mistake 는 '잘못된 것, 착오'입니다. there's 는 there is(~가 있다)의 줄임. '착오가 있는 것 같아요'가 됩니다.",
+ ex:[["That'll be fifty dollars.","50달러입니다."],["I think there's a mistake.","계산이 잘못된 것 같아요."]],
+ tip:"계산서가 이상할 때 쓰는 말입니다. You're wrong.(당신이 틀렸다)이라고 하면 시비가 되니 이렇게 말하세요. 상대를 탓하지 않으면서 확인을 요청하는 표현입니다."},
+
 "Keep the change.":{
  why:"change 는 '변화'가 아니라 여기서는 '거스름돈'입니다. '거스름돈은 가지세요' → '잔돈은 됐어요'.",
  ex:[["That's fifteen dollars.","15달러입니다."],["Keep the change.","잔돈은 됐어요."]],
