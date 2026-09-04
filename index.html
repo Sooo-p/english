@@ -269,6 +269,13 @@ textarea.backup{width:100%;height:80px;border-radius:10px;border:1px solid var(-
 .wtop span{font-size:13px;color:var(--ink-faint)}
 .wcut{display:inline-block;font-family:var(--en);font-size:14.5px;font-weight:600;color:var(--sign);background:var(--sign-soft);border-radius:8px;padding:6px 11px;margin-bottom:8px}
 
+
+/* 하루 분량 선택 */
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:11px;overflow:hidden;background:var(--card)}
+.seg button{flex:1;min-height:44px;font-size:14.5px;color:var(--ink-soft);border-right:1px solid var(--line-strong)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--sign);color:var(--sign-ink);font-weight:600}
+
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
 </head>
@@ -293,6 +300,16 @@ textarea.backup{width:100%;height:80px;border-radius:10px;border:1px solid var(-
 <div class="sheet" id="sheet" hidden>
   <div class="panel">
     <h2>설정</h2>
+
+    <div class="row" style="display:block">
+      <div class="lab" style="margin-bottom:9px">하루 분량
+        <small>며칠 걸러도 밀린 게 한꺼번에 쏟아지지 않도록, 넘치는 복습은 다음 날들로 자동으로 나눠 담습니다.</small>
+      </div>
+      <div class="seg" id="segLoad">
+        <button data-v="light">짧게</button><button data-v="normal">보통</button><button data-v="heavy">넉넉히</button>
+      </div>
+      <div class="note" id="loadNote" style="margin-top:7px"></div>
+    </div>
 
     <div class="row">
       <div class="lab">하루 새 문장<small>복습은 여기에 자동으로 더해집니다</small></div>
@@ -1409,6 +1426,8 @@ const KEY = "hanul15.v2";
 const BLANK = {
   cards:{}, streakDate:null, streak:0,
   newPerDay:5, newDate:null, newDone:0, bonusDate:null, bonus:0,
+  load:"normal",                        /* 하루 분량: light | normal | heavy */
+  spreadDate:null, spreadMoved:0, spreadDays:0,   /* 밀린 것 나눠 담기 기록 */
   tipSeen:false, showGloss:true, showRo:true,
   recOn:true,                           /* 녹음·번갈아 듣기 — 소리가 폰 밖으로 안 나가므로 기본 켬 */
   scenesDone:{}
@@ -1430,8 +1449,53 @@ function addDays(n){ const d = new Date(); d.setDate(d.getDate()+n); return stam
 function daysBetween(a,b){ return Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000); }
 
 const GAPS = [1, 1, 3, 7, 16, 40];
-const REVIEW_CAP = 12;
 const SAY_FROM_BOX = 2;      /* 두 번 맞히면 조각 없이 말하기로 넘어갑니다 */
+
+/* 하루 분량 — 하루를 걸러도 감당할 수 있는 크기를 유지하는 게 목적입니다 */
+const LOADS = {
+  light : { rev: 6,  name:"짧게",   note:"하루 3~5분" },
+  normal: { rev: 12, name:"보통",   note:"하루 8~12분" },
+  heavy : { rev: 25, name:"넉넉히", note:"하루 20분 이상" }
+};
+function loadCfg(){ return LOADS[S.load] || LOADS.normal; }
+function REVIEW_CAP(){ return loadCfg().rev; }
+
+/* 밀린 복습을 앞으로 며칠에 나눠 담습니다. 하루 한 번만 돕니다.
+   며칠을 걸러도 "오늘 할 것"이 늘 한 세션 크기로 유지됩니다. */
+function spreadDue(){
+  const t = today();
+  if(S.spreadDate === t) return;
+  S.spreadDate = t;
+  S.spreadMoved = 0; S.spreadDays = 0;
+
+  const cap = REVIEW_CAP();
+  /* 오늘까지 밀린 것 + 지난번에 우리가 뒤로 미뤄둔 것(sp 표시)을 함께 다시 배분합니다.
+     그래야 분량을 '넉넉히'로 올렸을 때 미뤄둔 것이 도로 당겨집니다. */
+  const pool = CARDS.filter(c => {
+    const st = S.cards[c.id];
+    return st && (st.due <= t || st.sp);
+  });
+
+  if(pool.length <= cap){
+    pool.forEach(c => { S.cards[c.id].due = t; delete S.cards[c.id].sp; });
+    save(); return;
+  }
+
+  shuffle(pool).forEach((c, i) => {
+    const st = S.cards[c.id];
+    if(i < cap){ st.due = t; delete st.sp; }
+    else { st.due = addDays(1 + Math.floor((i - cap) / cap)); st.sp = true; }
+  });
+  S.spreadMoved = pool.length - cap;
+  S.spreadDays = Math.ceil(S.spreadMoved / cap);
+  save();
+}
+
+/* 마지막으로 공부한 날부터 며칠이 지났나 */
+function daysMissed(){
+  if(!S.streakDate) return 0;
+  return Math.max(0, daysBetween(S.streakDate, today()) - 1);
+}
 
 function newAllowance(){ return S.newPerDay + (S.bonusDate === today() ? (S.bonus||0) : 0); }
 function newLeftToday(){
@@ -1451,7 +1515,7 @@ function shuffle(a){
   return r;
 }
 function buildQueue(){
-  const rev = shuffle(dueCards()).slice(0, REVIEW_CAP);
+  const rev = shuffle(dueCards()).slice(0, REVIEW_CAP());
   const fresh = freshCards().slice(0, newLeftToday());
   const q = rev.map(c => ({c, isNew:false}));
   fresh.forEach(c => q.splice(Math.floor(Math.random()*(q.length+1)), 0, {c, isNew:true}));
@@ -1645,7 +1709,8 @@ function renderHome(){
   $bar.hidden = true;
   $mark.textContent = "하루 열다섯 문장";
 
-  const waiting = Math.min(dueCards().length, REVIEW_CAP) + Math.min(freshCards().length, newLeftToday());
+  spreadDue();
+  const waiting = Math.min(dueCards().length, REVIEW_CAP()) + Math.min(freshCards().length, newLeftToday());
   const met = Object.keys(S.cards).length;
   const sayReady = CARDS.filter(c => S.cards[c.id] && S.cards[c.id].box >= SAY_FROM_BOX).length;
 
@@ -1668,7 +1733,17 @@ function renderHome(){
   stats.append(s1, s2);
   $body.appendChild(stats);
 
-  if(!S.tipSeen){
+  /* 며칠 걸렀을 때 — 밀린 것을 나눠 담았다고 알려줍니다 */
+  const missed = daysMissed();
+  if(S.spreadDate === today() && S.spreadMoved > 0){
+    const box = el("div","tip");
+    const t = el("div");
+    t.innerHTML = (missed > 0 ? "<b>" + missed + "일 쉬셨네요. 괜찮습니다.</b><br>" : "<b>밀린 게 있었어요.</b><br>") +
+      "복습 <b>" + S.spreadMoved + "장</b>을 앞으로 " + S.spreadDays + "일에 나눠 담았습니다. " +
+      "오늘은 <b>" + waiting + "장</b>만 하시면 됩니다. 밀린 게 한꺼번에 쏟아지지 않게 해뒀어요.";
+    box.appendChild(t);
+    $body.appendChild(box);
+  }else if(!S.tipSeen){
     const tip = el("div","tip");
     const txt = el("div");
     txt.innerHTML = "<b>세 단계로 올라갑니다.</b><br>1단 뜻 보고 맞추기 → 2단 조각 없이 <b>입으로 말하기</b> → 3단 <b>상황 연습</b>에서 실제로 써먹기.";
@@ -1996,6 +2071,7 @@ function commit(ok){
   }
   st.due = addDays(GAPS[st.box]);
   st.last = today();                    /* 오늘 배운 문장 추리기용 */
+  delete st.sp;                         /* 답했으니 '미뤄둔 것' 표시를 뗍니다 */
   S.cards[cur.c.id] = st;
   save();
 }
@@ -2360,6 +2436,25 @@ function renderDrill(){
 const $sheet = document.getElementById("sheet");
 const $msg = document.getElementById("sheetMsg");
 function msg(t){ $msg.textContent = t; }
+function syncLoad(){
+  const cfg = loadCfg();
+  document.querySelectorAll("#segLoad button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.v === (S.load || "normal")));
+  });
+  const dueNow = dueCards().length;
+  document.getElementById("loadNote").textContent =
+    cfg.name + " — 복습을 하루 최대 " + cfg.rev + "장까지만 내보냅니다. " + cfg.note + "." +
+    (dueNow > cfg.rev ? " 지금 밀린 " + dueNow + "장은 다음 날들로 나눠 담깁니다." : "");
+}
+document.querySelectorAll("#segLoad button").forEach(b => {
+  b.onclick = () => {
+    S.load = b.dataset.v;
+    S.spreadDate = null;          /* 분량이 바뀌었으니 다시 나눠 담습니다 */
+    save(); spreadDue(); syncLoad();
+    msg("하루 분량을 '" + loadCfg().name + "'으로 바꿨어요. 닫으면 새 분량으로 다시 짭니다.");
+  };
+});
+
 function syncToggles(){
   document.getElementById("tGloss").setAttribute("aria-pressed", String(!!S.showGloss));
   document.getElementById("tRo").setAttribute("aria-pressed", String(!!S.showRo));
@@ -2369,7 +2464,7 @@ document.getElementById("gear").onclick = () => {
   document.getElementById("nVal").textContent = S.newPerDay;
   const ta = document.getElementById("backup");
   ta.value = JSON.stringify(S); ta.setAttribute("readonly","");
-  syncToggles(); msg(""); $sheet.hidden = false;
+  syncToggles(); syncLoad(); msg(""); $sheet.hidden = false;
 };
 document.getElementById("closeSheet").onclick = () => { $sheet.hidden = true; render(); };
 $sheet.onclick = (e) => { if(e.target === $sheet){ $sheet.hidden = true; render(); } };

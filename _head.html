@@ -256,6 +256,13 @@ textarea.backup{width:100%;height:80px;border-radius:10px;border:1px solid var(-
 .wtop span{font-size:13px;color:var(--ink-faint)}
 .wcut{display:inline-block;font-family:var(--en);font-size:14.5px;font-weight:600;color:var(--sign);background:var(--sign-soft);border-radius:8px;padding:6px 11px;margin-bottom:8px}
 
+
+/* 하루 분량 선택 */
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:11px;overflow:hidden;background:var(--card)}
+.seg button{flex:1;min-height:44px;font-size:14.5px;color:var(--ink-soft);border-right:1px solid var(--line-strong)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--sign);color:var(--sign-ink);font-weight:600}
+
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
 
@@ -278,6 +285,16 @@ textarea.backup{width:100%;height:80px;border-radius:10px;border:1px solid var(-
 <div class="sheet" id="sheet" hidden>
   <div class="panel">
     <h2>설정</h2>
+
+    <div class="row" style="display:block">
+      <div class="lab" style="margin-bottom:9px">하루 분량
+        <small>며칠 걸러도 밀린 게 한꺼번에 쏟아지지 않도록, 넘치는 복습은 다음 날들로 자동으로 나눠 담습니다.</small>
+      </div>
+      <div class="seg" id="segLoad">
+        <button data-v="light">짧게</button><button data-v="normal">보통</button><button data-v="heavy">넉넉히</button>
+      </div>
+      <div class="note" id="loadNote" style="margin-top:7px"></div>
+    </div>
 
     <div class="row">
       <div class="lab">하루 새 문장<small>복습은 여기에 자동으로 더해집니다</small></div>
